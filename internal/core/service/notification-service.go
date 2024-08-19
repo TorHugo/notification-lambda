@@ -8,6 +8,8 @@ import (
 	"notification-api/internal/core/domain"
 	"notification-api/internal/ports"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 type NotificationService struct {
@@ -31,21 +33,34 @@ func (ns *NotificationService) ProcessNotifications() {
 	var host = os.Getenv("BASE_URI_NOTIFICATION")
 	var path = os.Getenv("PATH_MAIL_NOTIFICATION")
 	var url = buildUrl(host, path)
-	var notification domain.Notification
 
-	message := ns.consumer.Consume()
-	err := json.Unmarshal([]byte(message), &notification)
-	if err != nil {
-		log.Fatalf("error to deserialize message: %v", err)
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		log.Println("Listening to topic...")
+		select {
+		case <-sigChan:
+			log.Println("Received shutdown signal, exiting...")
+			return
+		default:
+			message := ns.consumer.Consume()
+			var notification domain.Notification
+			err := json.Unmarshal([]byte(message), &notification)
+			if err != nil {
+				log.Printf("error to deserialize message: %v", err)
+				continue
+			}
+
+			_, err = ns.httpClient.POST(url, message, nil)
+			if err != nil {
+				log.Printf("error: %v", err)
+				// send bucket or retry process
+			}
+
+			// send message to topic FinishRetryProcessTopic, to finish retry process.
+		}
 	}
-
-	_, err = ns.httpClient.POST(url, message, nil)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-		// send bucket or retry process
-	}
-
-	// send message to topic FinishRetryProcessTopic, to finish retry process.
 }
 
 func buildUrl(host string, path string) string {
