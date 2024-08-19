@@ -1,18 +1,23 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"log"
-	config "notification-lambda/config"
-	"notification-lambda/internal/adapters/http"
-	"notification-lambda/internal/adapters/messaging"
-	"notification-lambda/internal/core/service"
+	"notification-api/config"
+	"notification-api/internal/adapters/http"
+	messaging "notification-api/internal/adapters/messaging"
+	"notification-api/internal/core/service"
+	"os"
 )
 
 func main() {
-	consumer, err := config.Consumer()
-	if err != nil {
-		log.Fatalf("Failed to create Kafka consumer: %v", err)
+	errLoad := godotenv.Load()
+	if errLoad != nil {
+		log.Fatalf("Error loading .env file: %v", errLoad)
 	}
+	var topic = os.Getenv("KAFKA_NOTIFICATION_TOPIC")
+
+	consumer := config.NewKafkaReader(topic)
 	kafkaConsumer := messaging.NewKafkaConsumer(consumer)
 	httpClient := http.NewHttpClient()
 	notificationService := service.NewNotificationService(kafkaConsumer, httpClient)

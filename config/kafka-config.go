@@ -1,38 +1,34 @@
-package messaging
+package config
 
 import (
 	"fmt"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/joho/godotenv"
+	"github.com/segmentio/kafka-go"
 	"log"
 	"os"
 	"strconv"
-
-	"github.com/joho/godotenv"
 )
 
-func Consumer() (*kafka.Consumer, error) {
+func NewKafkaReader(topic string) *kafka.Reader {
 	errLoad := godotenv.Load()
 	if errLoad != nil {
 		log.Fatalf("Error loading .env file: %v", errLoad)
 	}
 
 	var host = os.Getenv("KAFKA_HOST")
-	var group = os.Getenv("KAFKA_GROUP")
+	var groupID = os.Getenv("KAFKA_GROUP")
 	port, err := strconv.Atoi(os.Getenv("KAFKA_PORT"))
 	if err != nil {
 		log.Fatalf("Error converting string to int: %v", err)
 	}
 
-	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": fullHost(host, port),
-		"group.id":          group,
-		"auto.offset.reset": "earliest",
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  []string{fullHost(host, port)},
+		GroupID:  groupID,
+		Topic:    topic,
+		MinBytes: 10e3, // 10KB
+		MaxBytes: 10e6, // 10MB
 	})
-	if err != nil {
-		log.Fatalf("Failed to create Kafka consumer: %v", err)
-	}
-
-	return consumer, nil
 }
 
 func fullHost(host string, port int) string {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	"log"
-	"notification-lambda/internal/core/domain"
-	"notification-lambda/internal/ports"
+	"notification-api/internal/core/domain"
+	"notification-api/internal/ports"
 	"os"
 )
 
@@ -28,13 +28,12 @@ func (ns *NotificationService) ProcessNotifications() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	var topic = os.Getenv("KAFKA_NOTIFICATION_TOPIC")
 	var host = os.Getenv("BASE_URI_NOTIFICATION")
 	var path = os.Getenv("PATH_MAIL_NOTIFICATION")
 	var url = buildUrl(host, path)
 	var notification domain.Notification
 
-	message := ns.consumer.Consume(topic)
+	message := ns.consumer.Consume()
 	err := json.Unmarshal([]byte(message), &notification)
 	if err != nil {
 		log.Fatalf("error to deserialize message: %v", err)
@@ -50,5 +49,5 @@ func (ns *NotificationService) ProcessNotifications() {
 }
 
 func buildUrl(host string, path string) string {
-	return fmt.Sprintf("%s:%s", host, path)
+	return fmt.Sprintf("%s%s", host, path)
 }
