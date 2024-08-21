@@ -27,7 +27,7 @@ func NewNotificationService(consumer ports.Consumer, httpClient ports.HttpClient
 func (ns *NotificationService) ProcessNotifications() {
 	errLoad := godotenv.Load()
 	if errLoad != nil {
-		log.Fatalf("Error loading .env file")
+		log.Println("Warning: Error loading .env file. Using environment variables.")
 	}
 
 	var host = os.Getenv("BASE_URI_NOTIFICATION")
