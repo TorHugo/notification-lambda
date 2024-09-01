@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"github.com/segmentio/kafka-go"
 	"log"
 	"os"
@@ -10,11 +9,6 @@ import (
 )
 
 func NewKafkaReader(topic string) *kafka.Reader {
-	errLoad := godotenv.Load()
-	if errLoad != nil {
-		log.Fatalf("Error loading .env file: %v", errLoad)
-	}
-
 	var host = os.Getenv("KAFKA_HOST")
 	var groupID = os.Getenv("KAFKA_GROUP")
 	port, err := strconv.Atoi(os.Getenv("KAFKA_PORT"))
@@ -22,6 +16,7 @@ func NewKafkaReader(topic string) *kafka.Reader {
 		log.Fatalf("Error converting string to int: %v", err)
 	}
 
+	log.Printf("Connecting to Kafka Brokers, host: %s, group: %s, port: %d\n", host, groupID, port)
 	return kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{fullHost(host, port)},
 		GroupID:  groupID,
